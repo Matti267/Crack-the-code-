@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crack the Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin: 20px 0;
+            color: #444;
+        }
+        #game-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 10px;
+            font-size: 1rem;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        .attempt {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .game-over {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Crack the Code</h1>
+    <div id="game-container">
+        <p>Errate die 3-stellige Zahl! Du hast 5 Versuche.</p>
+        <div id="attempts"></div>
+        <form id="guess-form">
+            <input type="number" id="guess" min="100" max="999" placeholder="123" required>
+            <button type="submit">Rate</button>
+        </form>
+        <p id="message"></p>
+    </div>
+    <script>
+        // Hilfsfunktion, um den täglichen Code zu generieren
+        function generateDailyCode() {
+            const seed = new Date().toISOString().slice(0, 10); // aktuelles Datum (YYYY-MM-DD)
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) {
+                hash = (hash * 31 + seed.charCodeAt(i)) % 1000; // einfacher Hash
+            }
+            return ('000' + hash).slice(-3); // Formatierung auf 3 Ziffern
+        }
+
+        // Spielvariablen
+        const dailyCode = generateDailyCode();
+        let attempts = 5;
+        const attemptHistory = [];
+        const attemptsContainer = document.getElementById('attempts');
+        const message = document.getElementById('message');
+        const guessForm = document.getElementById('guess-form');
+        const guessInput = document.getElementById('guess');
+
+        // Hilfsfunktion zur Überprüfung eines Rateversuchs
+        function checkGuess(guess, code) {
+            let correct = 0;
+            let misplaced = 0;
+            const guessArray = guess.split('');
+            const codeArray = code.split('');
+
+            // Erstellen von Kopien, um doppelte Treffer zu vermeiden
+            const guessUsed = [false, false, false];
+            const codeUsed = [false, false, false];
+
+            // Richtige Stellen prüfen
+            for (let i = 0; i < 3; i++) {
+                if (guessArray[i] === codeArray[i]) {
+                    correct++;
+                    guessUsed[i] = true;
+                    codeUsed[i] = true;
+                }
+            }
+
+            // Falsche Stellen prüfen
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (!guessUsed[i] && !codeUsed[j] && guessArray[i] === codeArray[j]) {
+                        misplaced++;
+                        guessUsed[i] = true;
+                        codeUsed[j] = true;
+                        break;
+                    }
+                }
+            }
+
+            return { correct, misplaced };
+        }
+
+        // Event-Handler für das Rateformular
+        guessForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            if (attempts === 0) return;
+
+            const guess = guessInput.value.padStart(3, '0'); // sicherstellen, dass es 3 Ziffern sind
+            if (!/^\d{3}$/.test(guess)) {
+                message.textContent = 'Bitte gib eine gültige 3-stellige Zahl ein.';
+                return;
+            }
+
+            attempts--;
+            const result = checkGuess(guess, dailyCode);
+            attemptHistory.push({ guess, ...result });
+
+            // Versuch anzeigen
+            const attemptDiv = document.createElement('div');
+            attemptDiv.className = 'attempt';
+            attemptDiv.textContent = `Dein Versuch: ${guess} | Richtige Stelle: ${result.correct} | Falsche Stelle: ${result.misplaced}`;
+            attemptsContainer.appendChild(attemptDiv);
+
+            // Erfolgs- oder Fehlermeldung
+            if (result.correct === 3) {
+                message.textContent = 'Herzlichen Glückwunsch! Du hast den Code geknackt!';
+                message.className = 'success';
+                guessForm.style.display = 'none';
+            } else if (attempts === 0) {
+                message.textContent = `Spiel vorbei! Der Code war ${dailyCode}.`;
+                message.className = 'game-over';
+                guessForm.style.display = 'none';
+            } else {
+                message.textContent = `Du hast noch ${attempts} ${attempts === 1 ? 'Versuch' : 'Versuche'}.`;
+                message.className = '';
+            }
+
+            guessInput.value = '';
+        });
+    </script>
+</body>
+</html>
